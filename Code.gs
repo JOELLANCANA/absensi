@@ -4,12 +4,12 @@
 // FITUR: Auto Sheet Setup, Web App Serving, google.script.run & REST API Handler
 // =================================================================================
 
-// Konfigurasi Spreadsheet & Sheet DataMaster
+// Konfigurasi Spreadsheet & Sheet MASTERDATA
 var SPREADSHEET_ID = "11q7bt212H_-l-CcklK-yygeigMQH8l-CBGihT1BGKHk";
-var SHEET_NAME = "DATAMASTER";
+var SHEET_NAME = "MASTERDATA";
 
 /**
- * Otomatis mendapatkan spreadsheet berdasarkan ID Spreadsheet & Nama Sheet DATAMASTER
+ * Otomatis mendapatkan spreadsheet berdasarkan ID Spreadsheet & Nama Sheet MASTERDATA
  */
 function getTargetSheet() {
   var ss;
