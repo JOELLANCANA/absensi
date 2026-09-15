@@ -433,6 +433,9 @@
 
     <!-- FRONTEND JAVASCRIPT LOGIC -->
     <script>
+        // Masukkan URL Google Apps Script Web App (URL /exec) yang didapat setelah Deploy di Apps Script
+        const GAS_WEB_APP_URL = "URL_WEB_APP_ANDA_DI_SINI";
+
         let participantDatabase = [];
         let html5QrCodeScanner = null;
         let isCameraActive = false;
@@ -453,6 +456,7 @@
         function syncDataFromBackend() {
             showToast("Sinkronisasi...", "Mengambil data peserta dari Google Spreadsheet...", "info");
             
+            // Mode 1: Jika diakses langsung dari Google Apps Script Web App
             if (typeof google !== 'undefined' && google.script && google.script.run) {
                 google.script.run
                     .withSuccessHandler(function(res) {
@@ -468,8 +472,30 @@
                         showToast("Error Backend", err.toString(), "warning");
                     })
                     .getParticipantData();
-            } else {
-                // Fallback demo local dataset jika diakses lokal tanpa Apps Script Engine
+            } 
+            // Mode 2: Jika di-deploy di Vercel (Menggunakan HTTP REST API POST)
+            else if (GAS_WEB_APP_URL && GAS_WEB_APP_URL !== "URL_WEB_APP_ANDA_DI_SINI") {
+                fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'getParticipantData' })
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if (res && res.success) {
+                        participantDatabase = res.data;
+                        updateAllViews();
+                        showToast("Sync Berhasil!", `Tersinkronisasi ${res.data.length} data peserta via Vercel.`, "success");
+                    } else {
+                        showToast("Gagal Sync", res ? res.message : "Gagal mengambil data.", "warning");
+                    }
+                })
+                .catch(err => {
+                    showToast("Error Network/CORS", err.toString(), "warning");
+                });
+            } 
+            // Mode 3: Fallback ke Dummy Local Data
+            else {
                 participantDatabase = [
                     { id: "210801001", nama: "Ahmad Mujiburrahman", fakultas: "FST - Sains & Teknologi", status: "HADIR", statusKeluarMasuk: "HADIR", waktuHadir: "15/09/2026 08:15:22" },
                     { id: "210801002", nama: "Cut Sarah Maulida", fakultas: "FTK - Tarbiyah & Keguruan", status: "HADIR", statusKeluarMasuk: "IZIN KELUAR", waktuHadir: "15/09/2026 09:10:05" },
@@ -633,6 +659,7 @@
         function markAttendanceById(participantId, explicitMode = null) {
             const mode = explicitMode || activeScanMode;
 
+            // Mode 1: Google Apps Script Native
             if (typeof google !== 'undefined' && google.script && google.script.run) {
                 google.script.run
                     .withSuccessHandler(function(res) {
@@ -647,7 +674,29 @@
                         showScanFeedback({ message: err.toString() }, false);
                     })
                     .markAttendance(participantId, mode);
-            } else {
+            } 
+            // Mode 2: Vercel REST API
+            else if (GAS_WEB_APP_URL && GAS_WEB_APP_URL !== "URL_WEB_APP_ANDA_DI_SINI") {
+                fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'markAttendance', id: participantId, scanMode: mode })
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if (res && res.success) {
+                        showScanFeedback(res.data, true);
+                        syncDataFromBackend();
+                    } else {
+                        showScanFeedback({ message: res ? res.message : "NIM / ID tidak terdaftar!" }, false);
+                    }
+                })
+                .catch(err => {
+                    showScanFeedback({ message: "Error API Vercel: " + err.toString() }, false);
+                });
+            } 
+            // Mode 3: Fallback Local
+            else {
                 const p = participantDatabase.find(x => x.id.toLowerCase() === participantId.toLowerCase());
                 if (p) {
                     p.status = "HADIR";
@@ -840,6 +889,26 @@
                         }
                     })
                     .addParticipant(id, nama, fakultas);
+            } else if (GAS_WEB_APP_URL && GAS_WEB_APP_URL !== "URL_WEB_APP_ANDA_DI_SINI") {
+                fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'addParticipant', id, nama, fakultas })
+                })
+                .then(res => res.json())
+                .then(res => {
+                    closeAddParticipantModal();
+                    if (res && res.success) {
+                        showToast("Berhasil", "Peserta berhasil disimpan!", "success");
+                        syncDataFromBackend();
+                    } else {
+                        showToast("Gagal", res ? res.message : "Gagal menyimpan peserta", "warning");
+                    }
+                })
+                .catch(err => {
+                    closeAddParticipantModal();
+                    showToast("Error", err.toString(), "warning");
+                });
             } else {
                 participantDatabase.push({ id, nama, fakultas, status: "BELUM HADIR", statusKeluarMasuk: "-", waktuHadir: "-" });
                 closeAddParticipantModal();
