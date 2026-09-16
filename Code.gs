@@ -36,21 +36,21 @@ function getTargetSheet() {
  */
 function initSheetHeaders(sheet) {
   var headers = [
-    ["NIM / ID", "Nama Lengkap", "Fakultas / Unit", "URL QR Code", "Status Kehadiran", "Status Keluar-Masuk", "Waktu Presensi Terakhir"]
+    ["NIM / ID", "Nama Lengkap", "Fakultas", "Program Studi (Prodi)", "Instansi / Kontak", "URL QR Code", "Status Kehadiran", "Status Keluar-Masuk", "Waktu Presensi Terakhir"]
   ];
-  sheet.getRange(1, 1, 1, 7).setValues(headers);
-  sheet.getRange(1, 1, 1, 7).setFontWeight("bold").setBackground("#006338").setFontColor("#FFFFFF");
+  sheet.getRange(1, 1, 1, 9).setValues(headers);
+  sheet.getRange(1, 1, 1, 9).setFontWeight("bold").setBackground("#006338").setFontColor("#FFFFFF");
   sheet.setFrozenRows(1);
   
-  // Sample Initial Data UIN Ar-Raniry
+  // Sample Initial Data UIN Ar-Raniry dengan Prodi
   var sampleData = [
-    ["210801001", "Ahmad Mujiburrahman", "FST - Sains & Teknologi", "", "BELUM HADIR", "-", "-"],
-    ["210801002", "Cut Sarah Maulida", "FTK - Tarbiyah & Keguruan", "", "BELUM HADIR", "-", "-"],
-    ["210801003", "Muhammad Farhan", "FEBI - Ekonomi & Bisnis Islam", "", "BELUM HADIR", "-", "-"],
-    ["210801004", "Nadia Ulfa", "FSH - Syariah & Hukum", "", "BELUM HADIR", "-", "-"],
-    ["210801005", "Rahmat Hidayatullah", "FAH - Adab & Humaniora", "", "BELUM HADIR", "-", "-"]
+    ["210801001", "Ahmad Mujiburrahman", "FST", "Teknik Informatika", "UIN Ar-Raniry", "", "BELUM HADIR", "-", "-"],
+    ["210801002", "Cut Sarah Maulida", "FTK", "Pendidikan Bahasa Inggris", "UIN Ar-Raniry", "", "BELUM HADIR", "-", "-"],
+    ["210801003", "Muhammad Farhan", "FEBI", "Perbankan Syariah", "UIN Ar-Raniry", "", "BELUM HADIR", "-", "-"],
+    ["210801004", "Nadia Ulfa", "FSH", "Hukum Ekonomi Syariah", "UIN Ar-Raniry", "", "BELUM HADIR", "-", "-"],
+    ["210801005", "Rahmat Hidayatullah", "FAH", "Sejarah Kebudayaan Islam", "UIN Ar-Raniry", "", "BELUM HADIR", "-", "-"]
   ];
-  sheet.getRange(2, 1, sampleData.length, 7).setValues(sampleData);
+  sheet.getRange(2, 1, sampleData.length, 9).setValues(sampleData);
 }
 
 /**
@@ -110,10 +110,12 @@ function getParticipantData() {
           id: String(data[i][0]).trim(),
           nama: String(data[i][1]).trim(),
           fakultas: String(data[i][2]).trim(),
-          qrCodeUrl: String(data[i][3] || ""),
-          status: String(data[i][4] || "BELUM HADIR").trim(),
-          statusKeluarMasuk: String(data[i][5] || "-").trim(),
-          waktuHadir: data[i][6] ? formatDateValue(data[i][6]) : "-"
+          prodi: String(data[i][3] || "-").trim(),
+          instansi: String(data[i][4] || "UIN Ar-Raniry").trim(),
+          qrCodeUrl: String(data[i][5] || ""),
+          status: String(data[i][6] || "BELUM HADIR").trim(),
+          statusKeluarMasuk: String(data[i][7] || "-").trim(),
+          waktuHadir: data[i][8] ? formatDateValue(data[i][8]) : "-"
         });
       }
     }
@@ -140,9 +142,10 @@ function markAttendance(participantId, targetScanMode) {
       var rowId = String(data[i][0]).trim().toUpperCase();
       
       if (rowId === cleanSearchId) {
-        sheet.getRange(i + 1, 5).setValue("HADIR");
-        sheet.getRange(i + 1, 6).setValue(nextKM);
-        sheet.getRange(i + 1, 7).setValue(timeString);
+        // Kolom 7 (Status), Kolom 8 (Status KM), Kolom 9 (Waktu)
+        sheet.getRange(i + 1, 7).setValue("HADIR");
+        sheet.getRange(i + 1, 8).setValue(nextKM);
+        sheet.getRange(i + 1, 9).setValue(timeString);
 
         return {
           success: true,
@@ -151,6 +154,8 @@ function markAttendance(participantId, targetScanMode) {
             id: String(data[i][0]),
             nama: String(data[i][1]),
             fakultas: String(data[i][2]),
+            prodi: String(data[i][3] || "-"),
+            instansi: String(data[i][4] || "UIN Ar-Raniry"),
             status: "HADIR",
             statusKeluarMasuk: nextKM,
             waktuHadir: timeString
@@ -168,7 +173,7 @@ function markAttendance(participantId, targetScanMode) {
 /**
  * Menambahkan Peserta Baru ke Google Spreadsheet (DATAMASTER)
  */
-function addParticipant(id, nama, fakultas) {
+function addParticipant(id, nama, fakultas, prodi, instansi) {
   try {
     var sheet = getTargetSheet();
     var data = sheet.getDataRange().getValues();
@@ -181,12 +186,12 @@ function addParticipant(id, nama, fakultas) {
       }
     }
 
-    sheet.appendRow([cleanId, nama.trim(), fakultas.trim(), "", "BELUM HADIR", "-", "-"]);
+    sheet.appendRow([cleanId, nama.trim(), fakultas.trim(), (prodi || "Umum").trim(), (instansi || "UIN Ar-Raniry").trim(), "", "BELUM HADIR", "-", "-"]);
     
     return {
       success: true,
       message: "Peserta berhasil ditambahkan!",
-      data: { id: cleanId, nama: nama, fakultas: fakultas, status: "BELUM HADIR", statusKeluarMasuk: "-", waktuHadir: "-" }
+      data: { id: cleanId, nama: nama, fakultas: fakultas, prodi: prodi, instansi: instansi, status: "BELUM HADIR", statusKeluarMasuk: "-", waktuHadir: "-" }
     };
   } catch (err) {
     return { success: false, message: err.toString() };
