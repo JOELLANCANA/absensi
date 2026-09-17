@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Backend - Sistem Presensi QR Code</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #006338 0%, #0a2e1d 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #006338;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid #006338;
+            border-radius: 6px;
+        }
+        
+        .test-section h2 {
+            color: #006338;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #006338;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #0a2e1d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,99,56,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.secondary {
+            background: #F39C12;
+            color: #000;
+        }
+        
+        button.secondary:hover {
+            background: #E67E22;
+        }
+        
+        .result-box {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #333;
+        }
+        
+        .result-box.success {
+            border-color: #28a745;
+            background: #f0fff4;
+            color: #155724;
+        }
+        
+        .result-box.error {
+            border-color: #dc3545;
+            background: #fff5f5;
+            color: #721c24;
+        }
+        
+        .result-box.info {
+            border-color: #0066cc;
+            background: #e7f3ff;
+            color: #004085;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #006338;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .status-badge.success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status-badge.error {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .status-badge.pending {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .info-text {
+            background: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #004085;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #006338;
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test API Backend</h1>
+        <p class="subtitle">Verifikasi integrasi frontend dengan Google Apps Script backend</p>
+        
+        <!-- TEST 1: Check Connection -->
+        <div class="test-section">
+            <h2>✅ Test 1: Check API Connection</h2>
+            <div class="info-text">
+                Verifikasi bahwa aplikasi bisa connect ke Google Apps Script backend
+            </div>
+            <div class="button-group">
+                <button onclick="testConnection()">Test Connection</button>
+                <button class="secondary" onclick="clearResult('test1')">Clear</button>
+            </div>
+            <div id="test1-result"></div>
+        </div>
+        
+        <!-- TEST 2: Get All Participants -->
+        <div class="test-section">
+            <h2>📋 Test 2: Get All Participants</h2>
+            <div class="info-text">
+                Fetch daftar semua peserta dari spreadsheet
+            </div>
+            <div class="button-group">
+                <button onclick="testGetParticipants()">Get Participants</button>
+                <button class="secondary" onclick="clearResult('test2')">Clear</button>
+            </div>
+            <div id="test2-result"></div>
+        </div>
+        
+        <!-- TEST 3: Get Event Config -->
+        <div class="test-section">
+            <h2>⚙️ Test 3: Get Event Configuration</h2>
+            <div class="info-text">
+                Fetch konfigurasi acara (judul, tanggal, waktu, lokasi)
+            </div>
+            <div class="button-group">
+                <button onclick="testGetEventConfig()">Get Event Config</button>
+                <button class="secondary" onclick="clearResult('test3')">Clear</button>
+            </div>
+            <div id="test3-result"></div>
+        </div>
+        
+        <!-- TEST 4: Mark Attendance -->
+        <div class="test-section">
+            <h2>✏️ Test 4: Mark Attendance</h2>
+            <div class="info-text">
+                Catat presensi peserta (test dengan NIM sample: 2190101093)
+            </div>
+            <div class="button-group">
+                <button onclick="testMarkAttendance('HADIR')">Mark: Hadir</button>
+                <button onclick="testMarkAttendance('IZIN KELUAR')">Mark: Izin Keluar</button>
+                <button onclick="testMarkAttendance('MASUK KEMBALI')">Mark: Masuk Kembali</button>
+                <button class="secondary" onclick="clearResult('test4')">Clear</button>
+            </div>
+            <div id="test4-result"></div>
+        </div>
+        
+        <!-- TEST 5: Get Stats -->
+        <div class="test-section">
+            <h2>📊 Test 5: Get Attendance Statistics</h2>
+            <div class="info-text">
+                Fetch statistik kehadiran (total, hadir, keluar, belum)
+            </div>
+            <div class="button-group">
+                <button onclick="testGetStats()">Get Stats</button>
+                <button class="secondary" onclick="clearResult('test5')">Clear</button>
+            </div>
+            <div id="test5-result"></div>
+        </div>
+        
+        <!-- MANUAL TEST -->
+        <div class="test-section">
+            <h2>🔧 Manual Test</h2>
+            <div class="info-text">
+                Test API dengan action & parameter custom
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="action-input" style="font-weight: 600;">Action:</label><br>
+                <select id="action-input" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="getAllParticipants">getAllParticipants</option>
+                    <option value="getEventConfig">getEventConfig</option>
+                    <option value="getAttendanceStats">getAttendanceStats</option>
+                    <option value="markAttendance">markAttendance (test)</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <button onclick="testCustomAction()">Send Custom Request</button>
+                <button class="secondary" onclick="clearResult('custom')">Clear</button>
+            </div>
+            <div id="custom-result"></div>
+        </div>
+        
+        <!-- SUMMARY -->
+        <div class="test-section" style="background: #f0fff4; border-left-color: #28a745;">
+            <h2 style="color: #28a745;">📝 Test Summary</h2>
+            <p style="margin-bottom: 15px;">Setelah menjalankan semua test:</p>
+            <ul style="margin-left: 20px; line-height: 1.8;">
+                <li>✅ Test Connection: Pastikan API accessible</li>
+                <li>✅ Test Participants: Pastikan data peserta muncul</li>
+                <li>✅ Test Config: Pastikan konfigurasi acara terbaca</li>
+                <li>✅ Test Attendance: Pastikan data bisa disimpan</li>
+                <li>✅ Test Stats: Pastikan statistik akurat</li>
+            </ul>
+            <p style="margin-top: 15px; font-size: 13px; color: #666;">
+                Jika semua test ✅ PASS, integrasi frontend-backend berhasil!
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxj_xwSWorfh8O9IGnF8dMusia3sWRFIU8lTJkBiFnCyJLInafLJfevZDLkhMDND3dIpw/exec";
+
+        function showLoading(elementId) {
+            document.getElementById(elementId).innerHTML = '<div class="loading"></div> Testing...';
+        }
+
+        function clearResult(testId) {
+            document.getElementById(testId + '-result').innerHTML = '';
+        }
+
+        function showResult(elementId, data, isError = false) {
+            const resultBox = document.getElementById(elementId + '-result');
+            const className = isError ? 'error' : (data.success ? 'success' : 'error');
+            const statusText = isError ? 'ERROR' : (data.success ? 'SUCCESS' : 'FAILED');
+            
+            resultBox.className = 'result-box ' + className;
+            resultBox.innerHTML = JSON.stringify(data, null, 2) + 
+                                 `\n\n<div class="status-badge ${isError ? 'error' : (data.success ? 'success' : 'error')}">${statusText}</div>`;
+        }
+
+        async function testConnection() {
+            const elementId = 'test1-result';
+            showLoading(elementId);
+            
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getAllParticipants' })
+                });
+                
+                if (response.ok) {
+                    showResult(elementId, {
+                        success: true,
+                        message: 'API connection successful',
+                        url: GAS_URL,
+                        timestamp: new Date().toLocaleString('id-ID')
+                    }, false);
+                } else {
+                    showResult(elementId, {
+                        success: false,
+                        message: 'API returned error status: ' + response.status
+                    }, true);
+                }
+            } catch (error) {
+                showResult(elementId, {
+                    success: false,
+                    message: 'Connection error: ' + error.message
+                }, true);
+            }
+        }
+
+        async function testGetParticipants() {
+            const elementId = 'test2-result';
+            showLoading(elementId);
+            
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getAllParticipants' })
+                });
+                
+                const data = await response.json();
+                showResult(elementId, {
+                    success: data.success,
+                    message: data.message || 'Data fetched successfully',
+                    totalParticipants: data.data ? data.data.length : 0,
+                    sample: data.data ? data.data.slice(0, 2) : []
+                }, !data.success);
+            } catch (error) {
+                showResult(elementId, {
+                    success: false,
+                    message: 'Error: ' + error.message
+                }, true);
+            }
+        }
+
+        async function testGetEventConfig() {
+            const elementId = 'test3-result';
+            showLoading(elementId);
+            
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getEventConfig' })
+                });
+                
+                const data = await response.json();
+                showResult(elementId, {
+                    success: data.success,
+                    message: data.message || 'Config fetched successfully',
+                    config: data.data || {}
+                }, !data.success);
+            } catch (error) {
+                showResult(elementId, {
+                    success: false,
+                    message: 'Error: ' + error.message
+                }, true);
+            }
+        }
+
+        async function testMarkAttendance(action) {
+            const elementId = 'test4-result';
+            showLoading(elementId);
+            
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'markAttendance',
+                        id: '2190101093',
+                        scanMode: action
+                    })
+                });
+                
+                const data = await response.json();
+                showResult(elementId, {
+                    success: data.success,
+                    message: data.message,
+                    action: action,
+                    timestamp: new Date().toLocaleString('id-ID'),
+                    data: data.data || {}
+                }, !data.success);
+            } catch (error) {
+                showResult(elementId, {
+                    success: false,
+                    message: 'Error: ' + error.message
+                }, true);
+            }
+        }
+
+        async function testGetStats() {
+            const elementId = 'test5-result';
+            showLoading(elementId);
+            
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getAttendanceStats' })
+                });
+                
+                const data = await response.json();
+                showResult(elementId, {
+                    success: data.success,
+                    message: data.message || 'Stats fetched successfully',
+                    statistics: data.data || {},
+                    timestamp: new Date().toLocaleString('id-ID')
+                }, !data.success);
+            } catch (error) {
+                showResult(elementId, {
+                    success: false,
+                    message: 'Error: ' + error.message
+                }, true);
+            }
+        }
+
+        async function testCustomAction() {
+            const elementId = 'custom-result';
+            const action = document.getElementById('action-input').value;
+            showLoading(elementId);
+            
+            try {
+                const payload = { action: action };
+                if (action === 'markAttendance') {
+                    payload.id = '2190101093';
+                    payload.scanMode = 'HADIR';
+                }
+                
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                showResult(elementId, data, !data.success);
+            } catch (error) {
+                showResult(elementId, {
+                    success: false,
+                    message: 'Error: ' + error.message
+                }, true);
+            }
+        }
+
+        // Auto test connection on load
+        window.addEventListener('load', () => {
+            console.log('Test page loaded. API URL:', GAS_URL);
+        });
+    </script>
+</body>
+</html>
