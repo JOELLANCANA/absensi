@@ -9,6 +9,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- HTML5 QR Code Scanner -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     
     <style>
         :root {
@@ -51,15 +53,15 @@
         
         .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 15px;
-            margin: 25px 20px;
+            margin: 20px;
         }
         
         .stat-card {
             background: white;
-            padding: 20px;
-            border-radius: 12px;
+            padding: 15px;
+            border-radius: 10px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             text-align: center;
             border-top: 4px solid;
@@ -70,28 +72,132 @@
         .stat-card.kembali { border-top-color: #17a2b8; }
         
         .stat-label {
-            font-size: 12px;
+            font-size: 11px;
             color: #666;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             text-transform: uppercase;
         }
         
         .stat-number {
-            font-size: 36px;
+            font-size: 28px;
             font-weight: bold;
-            margin-bottom: 5px;
         }
         
         .stat-card.belum .stat-number { color: #dc3545; }
         .stat-card.izin .stat-number { color: #ffc107; }
         .stat-card.kembali .stat-number { color: #17a2b8; }
         
+        .scanner-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px 20px;
+        }
+        
+        .scanner-box {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .scanner-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #006338;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #scanner {
+            background: #000;
+            border-radius: 10px;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-bottom: 12px;
+            width: 100%;
+        }
+        
+        .scanner-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .scanner-btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px;
+            background: #006338;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .scanner-btn:hover {
+            background: #004d2b;
+        }
+        
+        .scanner-btn.secondary {
+            background: #6c757d;
+        }
+        
+        .scanner-btn.secondary:hover {
+            background: #5a6268;
+        }
+        
+        .manual-input {
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+        }
+        
+        .manual-input p {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        
+        .input-group button {
+            padding: 10px 15px;
+            background: #006338;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
         .containers {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px 30px;
         }
@@ -106,104 +212,102 @@
         }
         
         .container-header {
-            padding: 18px;
+            padding: 15px;
             font-weight: bold;
-            font-size: 15px;
+            font-size: 14px;
             color: white;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         
-        .container-header.belum {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-        }
-        
-        .container-header.izin {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-        }
-        
-        .container-header.kembali {
-            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-        }
+        .container-header.belum { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
+        .container-header.izin { background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); }
+        .container-header.kembali { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); }
         
         .container-content {
-            padding: 15px;
+            padding: 12px;
             flex-grow: 1;
             overflow-y: auto;
-            max-height: 500px;
+            max-height: 300px;
         }
         
         .list-item {
             background: #f8f9fa;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 6px;
+            border-radius: 6px;
             border-left: 3px solid;
-            font-size: 13px;
+            font-size: 12px;
         }
         
-        .container-box.belum .list-item {
-            border-left-color: #dc3545;
-        }
-        
-        .container-box.izin .list-item {
-            border-left-color: #ffc107;
-        }
-        
-        .container-box.kembali .list-item {
-            border-left-color: #17a2b8;
-        }
+        .container-box.belum .list-item { border-left-color: #dc3545; }
+        .container-box.izin .list-item { border-left-color: #ffc107; }
+        .container-box.kembali .list-item { border-left-color: #17a2b8; }
         
         .item-name {
             font-weight: bold;
             color: #006338;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
         
         .item-nim {
             color: #666;
-            font-size: 12px;
+            font-size: 11px;
         }
         
         .empty-state {
             text-align: center;
-            padding: 40px 20px;
+            padding: 30px 15px;
             color: #999;
         }
         
         .empty-icon {
-            font-size: 32px;
-            margin-bottom: 10px;
+            font-size: 28px;
+            margin-bottom: 8px;
             display: block;
         }
         
         .footer {
             text-align: center;
-            padding: 20px;
+            padding: 15px;
             color: #999;
-            font-size: 12px;
-            border-top: 1px solid #eee;
+            font-size: 11px;
             background: white;
-            margin-top: 30px;
+            margin-top: 20px;
+            border-top: 1px solid #eee;
         }
         
         .refresh-info {
             text-align: center;
-            padding: 15px;
+            padding: 12px;
             color: #17a2b8;
-            font-size: 12px;
+            font-size: 11px;
             background: #e7f3ff;
             border-radius: 8px;
-            margin: 20px;
+            margin: 0 20px 15px;
+        }
+        
+        .scan-result {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            color: #2e7d32;
+        }
+        
+        .scan-result.error {
+            background: #ffebee;
+            border-color: #f44336;
+            color: #c62828;
         }
         
         @media (max-width: 768px) {
             .header h1 { font-size: 20px; }
-            .stat-number { font-size: 24px; }
-            .containers {
-                grid-template-columns: 1fr;
-            }
+            .stat-number { font-size: 20px; }
+            #scanner { min-height: 250px; }
+            .containers { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -212,7 +316,23 @@
     <!-- HEADER -->
     <div class="header">
         <h1><i class="fa-solid fa-building-columns"></i> UIN AR-RANIRY</h1>
-        <p>📊 Monitor Presensi Wisuda 2026 - Real-Time</p>
+        <p>📊 Monitor & Scanner Presensi Wisuda 2026</p>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+        <div class="stat-card belum">
+            <div class="stat-label">Belum Scan</div>
+            <div class="stat-number" id="count-belum">0</div>
+        </div>
+        <div class="stat-card izin">
+            <div class="stat-label">Izin Keluar</div>
+            <div class="stat-number" id="count-izin">0</div>
+        </div>
+        <div class="stat-card kembali">
+            <div class="stat-label">Masuk Kembali</div>
+            <div class="stat-number" id="count-kembali">0</div>
+        </div>
     </div>
 
     <!-- AUTO-REFRESH INFO -->
@@ -220,24 +340,34 @@
         <i class="fa-solid fa-sync-alt"></i> Auto-refresh setiap 5 detik
     </div>
 
-    <!-- STATS CARDS -->
-    <div class="stats-row">
-        <div class="stat-card belum">
-            <div class="stat-label">Belum Scan</div>
-            <div class="stat-number" id="count-belum">0</div>
-            <div style="font-size: 11px; color: #999;">Peserta</div>
-        </div>
-        
-        <div class="stat-card izin">
-            <div class="stat-label">Izin Keluar</div>
-            <div class="stat-number" id="count-izin">0</div>
-            <div style="font-size: 11px; color: #999;">Peserta</div>
-        </div>
-        
-        <div class="stat-card kembali">
-            <div class="stat-label">Masuk Kembali</div>
-            <div class="stat-number" id="count-kembali">0</div>
-            <div style="font-size: 11px; color: #999;">Peserta</div>
+    <!-- SCANNER SECTION -->
+    <div class="scanner-section">
+        <div class="scanner-box">
+            <div class="scanner-header">
+                <i class="fa-solid fa-qrcode"></i> Scanner QR Code
+            </div>
+            
+            <div id="scanner"></div>
+            
+            <div id="scan-result" style="display:none;"></div>
+            
+            <div class="scanner-controls">
+                <button class="scanner-btn" onclick="toggleScanner()">
+                    <i class="fa-solid fa-video"></i> Aktifkan Kamera
+                </button>
+                <button class="scanner-btn secondary" onclick="stopScanner()">
+                    <i class="fa-solid fa-stop"></i> Matikan
+                </button>
+            </div>
+            
+            <!-- Manual Input -->
+            <div class="manual-input">
+                <p>🔍 Atau input NIM manual:</p>
+                <div class="input-group">
+                    <input type="text" id="manual-nim" placeholder="Masukkan NIM peserta" />
+                    <button onclick="manualSearchNIM()">Cari</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -287,24 +417,63 @@
 
     <!-- FOOTER -->
     <div class="footer">
-        <p>Sistem Presensi QR Code UIN Ar-Raniry 2026 • Monitor Publik (Read-Only)</p>
+        <p>Sistem Presensi QR Code UIN Ar-Raniry 2026 • Public Monitor & Scanner</p>
     </div>
 
     <script>
-        // ============ DATA STORAGE ============
+        // ============ CONFIGURATION ============
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxj_xwSWorfh8O9IGnF8dMusia3sWRFIU8lTJkBiFnCyJLInafLJfevZDLkhMDND3dIpw/exec";
+        
+        // ============ VARIABLES ============
         let participants = [];
-        let lastUpdate = new Date();
-
-        // Load from localStorage (shared with admin)
-        function loadData() {
-            const saved = localStorage.getItem('participants');
-            if (saved) {
-                participants = JSON.parse(saved);
-                updateDisplay();
+        let html5QrCode = null;
+        
+        // ============ API CALL HELPER ============
+        async function callAPI(action, payload = {}) {
+            const data = { action, ...payload };
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    payload: JSON.stringify(data)
+                });
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                return { success: false, error: error.message };
             }
         }
 
-        // Update display
+        // ============ LOAD DATA FROM API ============
+        async function loadData() {
+            try {
+                const result = await callAPI('getAllParticipants');
+                
+                if (result.success) {
+                    participants = result.data || [];
+                    // Save to cache for offline fallback
+                    localStorage.setItem('participants_cache', JSON.stringify(participants));
+                    updateDisplay();
+                } else {
+                    // Fallback to cache jika API gagal
+                    const cached = localStorage.getItem('participants_cache');
+                    if (cached) {
+                        participants = JSON.parse(cached);
+                        updateDisplay();
+                    }
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+                // Silent fail - show what we have
+                const cached = localStorage.getItem('participants_cache');
+                if (cached) {
+                    participants = JSON.parse(cached);
+                    updateDisplay();
+                }
+            }
+        }
+
+        // ============ UPDATE DISPLAY ============
         function updateDisplay() {
             // Count stats
             const belum = participants.filter(p => !p.status).length;
@@ -319,12 +488,7 @@
             const belumList = participants.filter(p => !p.status);
             const elBelum = document.getElementById('container-belum');
             if (belumList.length === 0) {
-                elBelum.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fa-solid fa-check-double empty-icon" style="color: #28a745;"></i>
-                        <p>✓ Semua sudah scan!</p>
-                    </div>
-                `;
+                elBelum.innerHTML = '<div class="empty-state"><i class="fa-solid fa-check-double empty-icon" style="color: #28a745;"></i><p>✓ Semua sudah scan!</p></div>';
             } else {
                 elBelum.innerHTML = belumList.map(p => `
                     <div class="list-item">
@@ -338,18 +502,13 @@
             const izinList = participants.filter(p => p.keterangan === 'Keluar');
             const elIzin = document.getElementById('container-izin');
             if (izinList.length === 0) {
-                elIzin.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fa-solid fa-check-circle empty-icon"></i>
-                        <p>Belum ada yang keluar</p>
-                    </div>
-                `;
+                elIzin.innerHTML = '<div class="empty-state"><i class="fa-solid fa-check-circle empty-icon"></i><p>Belum ada</p></div>';
             } else {
                 elIzin.innerHTML = izinList.map(p => `
                     <div class="list-item">
                         <div class="item-name">${p.nama}</div>
                         <div class="item-nim">NIM: ${p.nim}</div>
-                        <div style="color: #ffc107; font-size: 11px; margin-top: 4px;">⏰ ${p.waktuScan || 'Baru saja'}</div>
+                        <div style="color: #ffc107; font-size: 10px; margin-top: 3px;">⏰ ${p.waktuScan || 'Terbaru'}</div>
                     </div>
                 `).join('');
             }
@@ -358,31 +517,127 @@
             const kembaliList = participants.filter(p => p.keterangan === 'Masuk Kembali');
             const elKembali = document.getElementById('container-kembali');
             if (kembaliList.length === 0) {
-                elKembali.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fa-solid fa-check-double empty-icon"></i>
-                        <p>Belum ada yang masuk kembali</p>
-                    </div>
-                `;
+                elKembali.innerHTML = '<div class="empty-state"><i class="fa-solid fa-check-double empty-icon"></i><p>Belum ada</p></div>';
             } else {
                 elKembali.innerHTML = kembaliList.map(p => `
                     <div class="list-item">
                         <div class="item-name">${p.nama}</div>
                         <div class="item-nim">NIM: ${p.nim}</div>
-                        <div style="color: #17a2b8; font-size: 11px; margin-top: 4px;">⏰ ${p.waktuScan || 'Baru saja'}</div>
+                        <div style="color: #17a2b8; font-size: 10px; margin-top: 3px;">⏰ ${p.waktuScan || 'Terbaru'}</div>
                     </div>
                 `).join('');
             }
-
-            lastUpdate = new Date();
         }
 
-        // Auto-refresh every 5 seconds
+        // ============ SCANNER ============
+        function toggleScanner() {
+            if (html5QrCode) {
+                stopScanner();
+            } else {
+                startScanner();
+            }
+        }
+
+        function startScanner() {
+            html5QrCode = new Html5Qrcode('scanner');
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices.length > 0) {
+                    html5QrCode.start(
+                        devices[0].id,
+                        { fps: 10, qrbox: { width: 250, height: 250 } },
+                        onScanSuccess,
+                        onScanError
+                    );
+                    document.querySelector('.scanner-btn').innerText = '✓ Kamera Aktif';
+                } else {
+                    showScanResult('Error: Kamera tidak ditemukan', true);
+                }
+            }).catch(err => {
+                showScanResult('Error: ' + err.message, true);
+            });
+        }
+
+        function stopScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop();
+                html5QrCode = null;
+                document.querySelector('.scanner-btn').innerText = '📷 Aktifkan Kamera';
+                document.getElementById('scan-result').style.display = 'none';
+            }
+        }
+
+        function onScanSuccess(decodedText) {
+            const nim = decodedText.trim();
+            const participant = participants.find(p => p.nim === nim);
+            
+            if (participant) {
+                showScanResult(`✓ ${participant.nama} (${participant.nim})`, false);
+                // Auto-record: Hadir
+                recordAttendance(nim, 'HADIR', 'Di Lokasi');
+            } else {
+                showScanResult(`✗ NIM ${nim} tidak ditemukan`, true);
+            }
+        }
+
+        function onScanError(err) {
+            // Silent error
+        }
+
+        function showScanResult(message, isError) {
+            const el = document.getElementById('scan-result');
+            el.className = isError ? 'scan-result error' : 'scan-result';
+            el.innerHTML = message;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 3000);
+        }
+
+        function manualSearchNIM() {
+            const nim = document.getElementById('manual-nim').value.trim();
+            if (!nim) {
+                showScanResult('✗ Masukkan NIM terlebih dahulu', true);
+                return;
+            }
+            
+            const participant = participants.find(p => p.nim === nim);
+            if (!participant) {
+                showScanResult(`✗ NIM ${nim} tidak ditemukan`, true);
+                return;
+            }
+            
+            showScanResult(`✓ ${participant.nama} (${participant.nim})`, false);
+            recordAttendance(nim, 'HADIR', 'Di Lokasi');
+            document.getElementById('manual-nim').value = '';
+        }
+
+        function recordAttendance(nim, status, keterangan) {
+            recordAttendanceAPI(nim, status, keterangan);
+        }
+
+        async function recordAttendanceAPI(nim, status, keterangan) {
+            try {
+                const result = await callAPI('markAttendance', {
+                    nim: nim,
+                    status: status,
+                    keterangan: keterangan,
+                    timestamp: new Date().toISOString()
+                });
+
+                if (result.success) {
+                    loadData(); // Refresh dari server
+                } else {
+                    console.error('Record error:', result.error);
+                }
+            } catch (error) {
+                console.error('Record error:', error);
+            }
+        }
+
+        // ============ AUTO-REFRESH ============
         setInterval(() => {
             loadData();
         }, 5000);
 
-        // Load on startup
+        // ============ INIT ============
         window.addEventListener('load', () => {
             loadData();
         });

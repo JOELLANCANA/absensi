@@ -496,6 +496,22 @@
     let html5QrCode = null;
     let currentScanNIM = null;
 
+    // ============ API CALL HELPER ============
+    async function callAPI(action, payload = {}) {
+        const data = { action, ...payload };
+        try {
+            const response = await fetch(GAS_URL, {
+                method: 'POST',
+                payload: JSON.stringify(data)
+            });
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('API Error:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
     // ============ LOGIN ============
     function handleLogin(e) {
         e.preventDefault();
@@ -505,7 +521,7 @@
             isLoggedIn = true;
             document.getElementById('login-page').style.display = 'none';
             document.getElementById('main-app').style.display = 'block';
-            loadDataFromLocalStorage();
+            loadDataFromAPI();
             updateAllStats();
             showToast('Login Berhasil', 'Selamat datang di dashboard admin', 'success');
         } else {
@@ -556,30 +572,36 @@
         }
 
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             try {
                 const workbook = XLSX.read(e.target.result, { type: 'binary' });
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 const data = XLSX.utils.sheet_to_json(sheet);
 
-                participants = data.map((row, index) => ({
+                const importData = data.map((row, index) => ({
                     no: row['No'] || (index + 1),
                     nim: String(row['NIM'] || row['ID'] || '').trim(),
                     nama: String(row['Nama'] || row['Nama Lengkap'] || '').trim(),
                     fakultas: String(row['Fakultas'] || '').trim(),
-                    prodi: String(row['Program Studi'] || row['Prodi'] || '').trim(),
-                    status: 'BELUM HADIR',
-                    keterangan: '-',
-                    waktuScan: '-',
-                    qrUrl: ''
+                    prodi: String(row['Program Studi'] || row['Prodi'] || '').trim()
                 })).filter(p => p.nim && p.nama);
 
-                saveDataToLocalStorage();
-                renderDataTable();
-                updateAllStats();
-                
-                showToast('Berhasil', `${participants.length} data peserta berhasil diimport`, 'success');
-                fileInput.value = '';
+                if (importData.length === 0) {
+                    showToast('Error', 'Tidak ada data valid dalam file', 'error');
+                    return;
+                }
+
+                // Call API to import
+                showToast('Loading', 'Mengimport data ke server...', 'info');
+                const result = await callAPI('importParticipants', { data: importData });
+
+                if (result.success) {
+                    showToast('Berhasil', `${result.count} peserta berhasil diimport`, 'success');
+                    fileInput.value = '';
+                    loadDataFromAPI(); // Refresh dari server
+                } else {
+                    showToast('Error', result.error || 'Gagal mengimport data', 'error');
+                }
             } catch (error) {
                 showToast('Error', 'Gagal membaca file: ' + error.message, 'error');
             }
@@ -754,21 +776,30 @@
         const participant = participants.find(p => p.nim === currentScanNIM);
         
         if (participant) {
-            participant.status = 'HADIR';
-            participant.keterangan = status === 'HADIR' ? 'Di Lokasi' : (status === 'IZIN_KELUAR' ? 'Keluar' : 'Masuk Kembali');
-            participant.waktuScan = new Date().toLocaleString('id-ID');
+            // Call API to record attendance
+            recordAttendanceAPI(currentScanNIM, status, participant.nama);
+        }
+    }
 
-            attendanceLog.push({
-                nim: participant.nim,
-                nama: participant.nama,
+    async function recordAttendanceAPI(nim, status, nama) {
+        try {
+            const keterangan = status === 'HADIR' ? 'Di Lokasi' : (status === 'IZIN_KELUAR' ? 'Keluar' : 'Masuk Kembali');
+            
+            const result = await callAPI('markAttendance', {
+                nim: nim,
                 status: status,
-                keterangan: participant.keterangan,
-                waktu: participant.waktuScan
+                keterangan: keterangan,
+                timestamp: new Date().toISOString()
             });
 
-            saveDataToLocalStorage();
-            updateAllStats();
-            showToast('Berhasil', 'Presensi ' + participant.nama + ' tercatat', 'success');
+            if (result.success) {
+                showToast('Berhasil', `Presensi ${nama} tercatat (${keterangan})`, 'success');
+                loadDataFromAPI(); // Refresh dari server
+            } else {
+                showToast('Error', result.error || 'Gagal mencatat presensi', 'error');
+            }
+        } catch (error) {
+            showToast('Error', 'Error: ' + error.message, 'error');
         }
     }
 
@@ -945,6 +976,18 @@
     }
 
     // ============ STATS ============
+    async function getStatsFromAPI() {
+        try {
+            const result = await callAPI('getAttendanceStats');
+            if (result.success) {
+                return result.stats;
+            }
+        } catch (error) {
+            console.error('Stats error:', error);
+        }
+        return null;
+    }
+
     function getStats() {
         return {
             total: participants.length,
@@ -955,8 +998,11 @@
         };
     }
 
-    function updateAllStats() {
-        const stats = getStats();
+    async function updateAllStats() {
+        // Try to get from API first
+        const apiStats = await getStatsFromAPI();
+        const stats = apiStats || getStats(); // Fallback to local if API fails
+
         document.getElementById('stat-total').innerText = stats.total;
         document.getElementById('stat-hadir').innerText = stats.hadir;
         document.getElementById('stat-keluar').innerText = stats.keluar;
@@ -1033,21 +1079,49 @@
         }
     }
 
-    // ============ LOCAL STORAGE ============
+    // ============ LOCAL STORAGE (DATA PERSISTENCE & CACHE) ============
+    async function loadDataFromAPI() {
+        try {
+            showToast('Loading', 'Mengambil data dari server...', 'info');
+            const result = await callAPI('getAllParticipants');
+            
+            if (result.success) {
+                participants = result.data || [];
+                // Save to cache for offline fallback
+                localStorage.setItem('participants_cache', JSON.stringify(participants));
+                renderDataTable();
+                renderLaporanTable();
+                updateAllStats();
+            } else {
+                // Fallback to cache jika API gagal
+                const cached = localStorage.getItem('participants_cache');
+                if (cached) {
+                    participants = JSON.parse(cached);
+                    showToast('Info', 'Menggunakan data cache (offline mode)', 'info');
+                    renderDataTable();
+                    renderLaporanTable();
+                    updateAllStats();
+                } else {
+                    showToast('Error', 'Gagal mengambil data', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Load error:', error);
+            showToast('Error', 'Gagal memuat data: ' + error.message, 'error');
+        }
+    }
+
     function saveDataToLocalStorage() {
+        // Deprecated - data saved to Google Sheets via API
+        // Keep for backward compatibility
         localStorage.setItem('participants', JSON.stringify(participants));
         localStorage.setItem('attendanceLog', JSON.stringify(attendanceLog));
     }
 
     function loadDataFromLocalStorage() {
-        const saved = localStorage.getItem('participants');
-        const logs = localStorage.getItem('attendanceLog');
-        
-        if (saved) participants = JSON.parse(saved);
-        if (logs) attendanceLog = JSON.parse(logs);
-        
-        renderDataTable();
-        renderLaporanTable();
+        // Deprecated - now using loadDataFromAPI
+        // Kept for backward compatibility
+        loadDataFromAPI();
     }
 
     // ============ TOAST ============

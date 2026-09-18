@@ -528,3 +528,55 @@ function formatDateValue(dateVal) {
     return String(dateVal);
   }
 }
+
+
+/**
+ * Import Peserta dari Excel/Frontend (Bulk Import)
+ * Menerima array data peserta dan insert ke MASTERDATA sheet
+ */
+function importParticipants(participantsData) {
+  try {
+    if (!participantsData || !Array.isArray(participantsData)) {
+      return { success: false, message: "Data peserta tidak valid" };
+    }
+
+    var sheet = getOrCreateSheet(SHEET_MASTERDATA);
+    
+    // Clear existing data (keep header)
+    var lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      sheet.deleteRows(2, lastRow - 1);
+    }
+
+    // Prepare data for insert
+    var dataToInsert = [];
+    for (var i = 0; i < participantsData.length; i++) {
+      var p = participantsData[i];
+      dataToInsert.push([
+        String(p.nim || p.id || "").trim(),                    // NIM / ID (Column 1)
+        String(p.nama || "").trim(),                           // Nama (Column 2)
+        String(p.fakultas || "").trim(),                       // Fakultas (Column 3)
+        String(p.prodi || p["Program Studi"] || "").trim(),   // Program Studi (Column 4)
+        String(p.instansi || "UIN Ar-Raniry").trim(),          // Instansi (Column 5)
+        "",                                                     // URL QR Code (Column 6)
+        "BELUM HADIR",                                          // Status (Column 7)
+        "-",                                                    // Status Keluar-Masuk (Column 8)
+        "-"                                                     // Waktu Presensi (Column 9)
+      ]);
+    }
+
+    // Insert data
+    if (dataToInsert.length > 0) {
+      sheet.getRange(2, 1, dataToInsert.length, 9).setValues(dataToInsert);
+    }
+
+    return { 
+      success: true, 
+      message: "Peserta berhasil diimport",
+      count: participantsData.length
+    };
+
+  } catch (err) {
+    return { success: false, message: "Error import: " + err.toString() };
+  }
+}
