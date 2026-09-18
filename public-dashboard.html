@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Presensi - UIN Ar-Raniry</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --uin-green: #006338;
+            --uin-dark: #0a2e1d;
+            --uin-gold: #D4AF37;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #F4F7F5 0%, #E8F0ED 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--uin-green) 0%, var(--uin-dark) 100%);
+            color: white;
+            padding: 25px 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 25px 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+            border-top: 4px solid;
+        }
+        
+        .stat-card.belum { border-top-color: #dc3545; }
+        .stat-card.izin { border-top-color: #ffc107; }
+        .stat-card.kembali { border-top-color: #17a2b8; }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card.belum .stat-number { color: #dc3545; }
+        .stat-card.izin .stat-number { color: #ffc107; }
+        .stat-card.kembali .stat-number { color: #17a2b8; }
+        
+        .containers {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px 30px;
+        }
+        
+        .container-box {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container-header {
+            padding: 18px;
+            font-weight: bold;
+            font-size: 15px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .container-header.belum {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        
+        .container-header.izin {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+        }
+        
+        .container-header.kembali {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        }
+        
+        .container-content {
+            padding: 15px;
+            flex-grow: 1;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+        
+        .list-item {
+            background: #f8f9fa;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 3px solid;
+            font-size: 13px;
+        }
+        
+        .container-box.belum .list-item {
+            border-left-color: #dc3545;
+        }
+        
+        .container-box.izin .list-item {
+            border-left-color: #ffc107;
+        }
+        
+        .container-box.kembali .list-item {
+            border-left-color: #17a2b8;
+        }
+        
+        .item-name {
+            font-weight: bold;
+            color: #006338;
+            margin-bottom: 3px;
+        }
+        
+        .item-nim {
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        
+        .empty-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 12px;
+            border-top: 1px solid #eee;
+            background: white;
+            margin-top: 30px;
+        }
+        
+        .refresh-info {
+            text-align: center;
+            padding: 15px;
+            color: #17a2b8;
+            font-size: 12px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            margin: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 { font-size: 20px; }
+            .stat-number { font-size: 24px; }
+            .containers {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <div class="header">
+        <h1><i class="fa-solid fa-building-columns"></i> UIN AR-RANIRY</h1>
+        <p>📊 Monitor Presensi Wisuda 2026 - Real-Time</p>
+    </div>
+
+    <!-- AUTO-REFRESH INFO -->
+    <div class="refresh-info">
+        <i class="fa-solid fa-sync-alt"></i> Auto-refresh setiap 5 detik
+    </div>
+
+    <!-- STATS CARDS -->
+    <div class="stats-row">
+        <div class="stat-card belum">
+            <div class="stat-label">Belum Scan</div>
+            <div class="stat-number" id="count-belum">0</div>
+            <div style="font-size: 11px; color: #999;">Peserta</div>
+        </div>
+        
+        <div class="stat-card izin">
+            <div class="stat-label">Izin Keluar</div>
+            <div class="stat-number" id="count-izin">0</div>
+            <div style="font-size: 11px; color: #999;">Peserta</div>
+        </div>
+        
+        <div class="stat-card kembali">
+            <div class="stat-label">Masuk Kembali</div>
+            <div class="stat-number" id="count-kembali">0</div>
+            <div style="font-size: 11px; color: #999;">Peserta</div>
+        </div>
+    </div>
+
+    <!-- LIVE DATA CONTAINERS -->
+    <div class="containers">
+        
+        <!-- BELUM SCAN -->
+        <div class="container-box belum">
+            <div class="container-header belum">
+                <i class="fa-solid fa-circle-xmark"></i> Belum Scan
+            </div>
+            <div class="container-content" id="container-belum">
+                <div class="empty-state">
+                    <i class="fa-solid fa-hourglass-empty empty-icon"></i>
+                    <p>Menunggu data...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- IZIN KELUAR -->
+        <div class="container-box izin">
+            <div class="container-header izin">
+                <i class="fa-solid fa-door-open"></i> Izin Keluar
+            </div>
+            <div class="container-content" id="container-izin">
+                <div class="empty-state">
+                    <i class="fa-solid fa-check-circle empty-icon"></i>
+                    <p>Belum ada yang keluar</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MASUK KEMBALI -->
+        <div class="container-box kembali">
+            <div class="container-header kembali">
+                <i class="fa-solid fa-arrow-rotate-left"></i> Masuk Kembali
+            </div>
+            <div class="container-content" id="container-kembali">
+                <div class="empty-state">
+                    <i class="fa-solid fa-check-double empty-icon"></i>
+                    <p>Belum ada yang masuk kembali</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <p>Sistem Presensi QR Code UIN Ar-Raniry 2026 • Monitor Publik (Read-Only)</p>
+    </div>
+
+    <script>
+        // ============ DATA STORAGE ============
+        let participants = [];
+        let lastUpdate = new Date();
+
+        // Load from localStorage (shared with admin)
+        function loadData() {
+            const saved = localStorage.getItem('participants');
+            if (saved) {
+                participants = JSON.parse(saved);
+                updateDisplay();
+            }
+        }
+
+        // Update display
+        function updateDisplay() {
+            // Count stats
+            const belum = participants.filter(p => !p.status).length;
+            const izin = participants.filter(p => p.keterangan === 'Keluar').length;
+            const kembali = participants.filter(p => p.keterangan === 'Masuk Kembali').length;
+
+            document.getElementById('count-belum').innerText = belum;
+            document.getElementById('count-izin').innerText = izin;
+            document.getElementById('count-kembali').innerText = kembali;
+
+            // Belum Scan
+            const belumList = participants.filter(p => !p.status);
+            const elBelum = document.getElementById('container-belum');
+            if (belumList.length === 0) {
+                elBelum.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-solid fa-check-double empty-icon" style="color: #28a745;"></i>
+                        <p>✓ Semua sudah scan!</p>
+                    </div>
+                `;
+            } else {
+                elBelum.innerHTML = belumList.map(p => `
+                    <div class="list-item">
+                        <div class="item-name">${p.nama}</div>
+                        <div class="item-nim">NIM: ${p.nim}</div>
+                    </div>
+                `).join('');
+            }
+
+            // Izin Keluar
+            const izinList = participants.filter(p => p.keterangan === 'Keluar');
+            const elIzin = document.getElementById('container-izin');
+            if (izinList.length === 0) {
+                elIzin.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-solid fa-check-circle empty-icon"></i>
+                        <p>Belum ada yang keluar</p>
+                    </div>
+                `;
+            } else {
+                elIzin.innerHTML = izinList.map(p => `
+                    <div class="list-item">
+                        <div class="item-name">${p.nama}</div>
+                        <div class="item-nim">NIM: ${p.nim}</div>
+                        <div style="color: #ffc107; font-size: 11px; margin-top: 4px;">⏰ ${p.waktuScan || 'Baru saja'}</div>
+                    </div>
+                `).join('');
+            }
+
+            // Masuk Kembali
+            const kembaliList = participants.filter(p => p.keterangan === 'Masuk Kembali');
+            const elKembali = document.getElementById('container-kembali');
+            if (kembaliList.length === 0) {
+                elKembali.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-solid fa-check-double empty-icon"></i>
+                        <p>Belum ada yang masuk kembali</p>
+                    </div>
+                `;
+            } else {
+                elKembali.innerHTML = kembaliList.map(p => `
+                    <div class="list-item">
+                        <div class="item-name">${p.nama}</div>
+                        <div class="item-nim">NIM: ${p.nim}</div>
+                        <div style="color: #17a2b8; font-size: 11px; margin-top: 4px;">⏰ ${p.waktuScan || 'Baru saja'}</div>
+                    </div>
+                `).join('');
+            }
+
+            lastUpdate = new Date();
+        }
+
+        // Auto-refresh every 5 seconds
+        setInterval(() => {
+            loadData();
+        }, 5000);
+
+        // Load on startup
+        window.addEventListener('load', () => {
+            loadData();
+        });
+    </script>
+
+</body>
+</html>
